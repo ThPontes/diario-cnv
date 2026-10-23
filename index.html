@@ -481,6 +481,8 @@ function renderNeed() {
 /* avançar / salvar */
 function nowLocal() { var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); }
 $("next").addEventListener("click", function () {
+  if (screen === "feel" && $("f-custom").value.trim()) $("f-add").click();
+  if (screen === "need" && $("n-custom").value.trim()) $("n-add").click();
   if (screen === "feel") return show("need");
   if (screen === "need") return show("note");
   entries.unshift({
@@ -501,14 +503,14 @@ function fmtWhen(s) {
   return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }) + " · " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 function pills(arr, prefix) { return arr.map(function (w) { return '<span class="pill" style="' + colorVars(prefix, prefix === "g" ? feelGroup(w) : needGroup(w)) + '">' + esc(cap(w)) + "</span>"; }).join(""); }
-function entryHTML(e, sample) {
+function entryHTML(e, sample, readonly) {
   var h = '<article class="entry' + (sample ? " sample" : "") + '"><div class="e-top"><span>' + esc(fmtWhen(e.when)) + '</span><span>' + (sample ? '<span class="tag">Exemplo</span> ' : "") + '<span class="tag">' + (e.kind === "evento" ? "Aconteceu algo" : "Tique") + "</span></span></div>";
   if (e.tic) h += '<div class="e-txt"><span class="e-k">Tique</span>' + esc(e.tic) + "</div>";
   if (e.feelings && e.feelings.length) h += '<div class="e-row"><span class="e-k">Sinto</span>' + pills(e.feelings, "g") + (e.intensity ? '<span class="muted">· ' + e.intensity / 2 + "/5</span>" : "") + "</div>";
   if (e.needs && e.needs.length) h += '<div class="e-row"><span class="e-k">Preciso</span>' + pills(e.needs, "n") + "</div>";
   if (e.obs) h += '<div class="e-txt"><span class="e-k">Observação</span>' + esc(e.obs) + "</div>";
   if (e.req) h += '<div class="e-txt"><span class="e-k">Pedido</span>' + esc(e.req) + "</div>";
-  if (!sample) h += '<div><button type="button" class="btn small danger" data-del="' + esc(e.id) + '">Apagar</button></div>';
+  if (!sample && !readonly) h += '<div><button type="button" class="btn small danger" data-del="' + esc(e.id) + '">Apagar</button></div>';
   return h + "</article>";
 }
 var armed = null;
@@ -601,7 +603,8 @@ function renderReport() {
     '<div class="card"><div class="lbl">Necessidades mais frequentes</div>' + hbars(s.need, "n") + "</div>" +
     (s.tiques ? '<div class="card"><div class="lbl">Tiques por dia da semana</div><div class="cols">' + s.dow.map(function (v) { return '<i style="height:' + Math.round(v / dmax * 100) + '%" title="' + v + '"></i>'; }).join("") + '</div><div class="cols-l">' + DOW.map(function (d, i) { return "<span>" + d + "<br>" + s.dow[i] + "</span>"; }).join("") + "</div></div>" +
       '<div class="card"><div class="lbl">Tiques por período do dia</div>' + hbars(parts, null) + "</div>" +
-      '<div class="card"><div class="lbl">Sentimentos que aparecem junto com os tiques</div>' + hbars(s.feelTique, "g") + "</div>" : "");
+      '<div class="card"><div class="lbl">Sentimentos que aparecem junto com os tiques</div>' + hbars(s.feelTique, "g") + "</div>" : "") +
+    '<div class="lbl">Registros do período</div>' + list.slice().reverse().map(function (e) { return entryHTML(e, false, true); }).join("");
 }
 document.querySelectorAll("#periods .chip").forEach(function (c) {
   c.addEventListener("click", function () {

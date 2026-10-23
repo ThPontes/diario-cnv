@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f7a72">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>Diário CNV</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Nunito+Sans:wght@400;600;700;800&display=swap">
+<script src="vendor/jspdf.umd.min.js"></script>
+<style>
+/* Layout: app de uma tela por vez. Início com dois botões grandes; cada passo cabe na tela, com barra fixa de avançar embaixo. */
+:root {
+  --bg: #f1f5f4; --surface: #ffffff; --fg: #19302f; --muted: #5a7270; --line: #d3dfdd;
+  --accent: #1f7a72; --accent-ink: #ffffff; --accent-soft: #d9ece9;
+  /* grupos de sentimentos */
+  --g-raiva: #c2412f; --g-raiva-s: #f8dfda;
+  --g-medo: #b86a0e; --g-medo-s: #f6e5cd;
+  --g-tris: #3d63b0; --g-tris-s: #dde6f7;
+  --g-cans: #6f6585; --g-cans-s: #e7e3ee;
+  --g-paz: #2d8a5a; --g-paz-s: #d9f0e3;
+  --g-aleg: #a8800a; --g-aleg-s: #f5ecc9;
+  --g-ener: #1f7a8c; --g-ener-s: #d5ecf1;
+  /* grupos de necessidades */
+  --n-corpo: #2d8a5a; --n-corpo-s: #d9f0e3;
+  --n-seg: #3d63b0; --n-seg-s: #dde6f7;
+  --n-con: #c2416e; --n-con-s: #f7dce6;
+  --n-aut: #b86a0e; --n-aut-s: #f6e5cd;
+  --n-sent: #6b55b0; --n-sent-s: #e5dff6;
+  --n-lazer: #1f7a8c; --n-lazer-s: #d5ecf1;
+  --on-solid: #ffffff;
+  --font-display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --font-body: "Nunito Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1b1b; --surface: #162626; --fg: #e4efed; --muted: #93aeab; --line: #2a3f3d;
+    --accent: #4fc0b4; --accent-ink: #08201d; --accent-soft: #1d3b38;
+    --g-raiva: #f08a78; --g-raiva-s: #3d211c; --g-medo: #eaa55a; --g-medo-s: #3a2a16;
+    --g-tris: #8fadf0; --g-tris-s: #1e2a44; --g-cans: #b7acd0; --g-cans-s: #2a2636;
+    --g-paz: #6fd29d; --g-paz-s: #183326; --g-aleg: #e6c45a; --g-aleg-s: #362e14;
+    --g-ener: #6cc8da; --g-ener-s: #163238;
+    --n-corpo: #6fd29d; --n-corpo-s: #183326; --n-seg: #8fadf0; --n-seg-s: #1e2a44;
+    --n-con: #f08aae; --n-con-s: #3b1c28; --n-aut: #eaa55a; --n-aut-s: #3a2a16;
+    --n-sent: #b3a2f0; --n-sent-s: #2a2342; --n-lazer: #6cc8da; --n-lazer-s: #163238;
+    --on-solid: #0f1b1b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1b1b; --surface: #162626; --fg: #e4efed; --muted: #93aeab; --line: #2a3f3d;
+  --accent: #4fc0b4; --accent-ink: #08201d; --accent-soft: #1d3b38;
+  --g-raiva: #f08a78; --g-raiva-s: #3d211c; --g-medo: #eaa55a; --g-medo-s: #3a2a16;
+  --g-tris: #8fadf0; --g-tris-s: #1e2a44; --g-cans: #b7acd0; --g-cans-s: #2a2636;
+  --g-paz: #6fd29d; --g-paz-s: #183326; --g-aleg: #e6c45a; --g-aleg-s: #362e14;
+  --g-ener: #6cc8da; --g-ener-s: #163238;
+  --n-corpo: #6fd29d; --n-corpo-s: #183326; --n-seg: #8fadf0; --n-seg-s: #1e2a44;
+  --n-con: #f08aae; --n-con-s: #3b1c28; --n-aut: #eaa55a; --n-aut-s: #3a2a16;
+  --n-sent: #b3a2f0; --n-sent-s: #2a2342; --n-lazer: #6cc8da; --n-lazer-s: #163238;
+  --on-solid: #0f1b1b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font: 16px/1.45 var(--font-body);
+  padding-block: 16px 110px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 560px; margin: 0 auto; }
+h1, h2 { font-family: var(--font-display); margin: 0; line-height: 1.15; text-wrap: balance; }
+h1 { font-size: 1.7rem; }
+h2 { font-size: 1.3rem; }
+p { margin: 0; }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.screen { display: flex; flex-direction: column; gap: 14px; }
+.muted { color: var(--muted); font-size: .92rem; }
+.lbl { font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 800; color: var(--muted); }
+
+/* topo dos passos */
+.top { display: flex; align-items: center; gap: 12px; }
+.back { border: 0; background: var(--surface); border: 1px solid var(--line); width: 40px; height: 40px; border-radius: 12px; cursor: pointer; font-size: 1.2rem; flex: none; }
+.prog { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.prog i { height: 6px; border-radius: 3px; background: var(--line); }
+.prog i.on { background: var(--accent); }
+.stepname { font-weight: 800; color: var(--accent); font-size: .85rem; }
+
+/* início */
+.hero { display: flex; flex-direction: column; gap: 6px; padding-block: 8px 4px; }
+.big { border: 0; border-radius: 22px; padding: 26px 22px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+.big b { font-family: var(--font-display); font-size: 1.7rem; font-weight: 700; }
+.big span { font-size: .95rem; opacity: .9; }
+.big.tique { background: var(--accent); color: var(--accent-ink); min-height: 170px; justify-content: flex-end; }
+.big.evento { background: var(--surface); color: var(--fg); border: 2px solid var(--line); }
+.homeinfo { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 14px; cursor: pointer; font-weight: 700; }
+.btn.grow { flex: 1; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.danger { color: var(--g-raiva); }
+.btn.small { padding: 5px 10px; font-size: .85rem; }
+
+/* alternância bem / mal */
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg button { border: 2px solid var(--line); background: var(--surface); border-radius: 14px; padding: 12px 8px; cursor: pointer; font-weight: 800; }
+.seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+
+/* grade de palavras */
+.groups { display: flex; flex-direction: column; gap: 10px; }
+.grp { display: flex; flex-direction: column; gap: 6px; }
+.grp-h { display: flex; align-items: center; gap: 8px; font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
+.grp-h::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 6px; }
+.w { border: 1px solid transparent; background: var(--cs); color: var(--fg); border-radius: 10px; padding: 8px 6px; min-height: 40px; cursor: pointer; font-size: .86rem; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+.w[aria-pressed="true"] { background: var(--c); color: var(--on-solid); }
+.w.mine { border: 1px dashed var(--c); }
+
+/* intensidade */
+.inten { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.inten button { border: 2px solid var(--line); background: var(--surface); border-radius: 12px; height: 48px; cursor: pointer; font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; }
+.inten button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.inten-l { display: flex; justify-content: space-between; color: var(--muted); font-size: .8rem; }
+
+/* blocos de necessidades */
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile { border: 2px solid transparent; background: var(--cs); color: var(--fg); border-radius: 14px; padding: 12px 8px; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 2px; min-height: 74px; }
+.tile b { font-size: .95rem; color: var(--c); }
+.tile small { color: var(--muted); font-size: .76rem; }
+.tile[aria-expanded="true"] { border-color: var(--c); }
+.tile .n { font-weight: 800; color: var(--c); font-size: .8rem; }
+.open { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+
+.add { display: flex; gap: 8px; }
+.add input, .field input, .field textarea { flex: 1; min-width: 0; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; font-weight: 800; font-size: .92rem; }
+.field span { font-weight: 400; color: var(--muted); font-size: .85rem; }
+.field textarea { min-height: 84px; resize: vertical; }
+.chosen { display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .85rem; font-weight: 700; background: var(--cs); color: var(--c); }
+
+/* barra inferior */
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--bg); border-top: 1px solid var(--line);
+  padding-top: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.bar-in { max-width: 560px; margin: 0 auto; display: flex; gap: 10px; }
+.bar .btn { padding: 15px; font-size: 1.05rem; }
+.toast { background: var(--accent-soft); color: var(--accent); font-weight: 800; padding: 12px 14px; border-radius: 12px; }
+
+/* registros */
+.entry { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.entry.sample { border-style: dashed; }
+.e-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-weight: 800; font-variant-numeric: tabular-nums; }
+.tag { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+.e-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.e-txt { overflow-wrap: anywhere; }
+.e-k { color: var(--muted); font-size: .8rem; font-weight: 800; margin-right: 4px; }
+.tools { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.tools textarea { width: 100%; min-height: 90px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: .8rem; }
+.note { font-size: .85rem; color: var(--muted); }
+
+/* relatório */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 2px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-weight: 700; font-size: .9rem; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.since { display: flex; align-items: center; gap: 8px; }
+.since input { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (max-width: 420px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.stat b { display: block; font-family: var(--font-display); font-size: 1.6rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat span { color: var(--muted); font-size: .8rem; }
+.hbars { display: flex; flex-direction: column; gap: 6px; }
+.hb { display: grid; grid-template-columns: 7.5rem 1fr 2.5ch; gap: 8px; align-items: center; font-size: .88rem; }
+.hb > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.hb i { display: block; height: 12px; border-radius: 6px; background: var(--c, var(--accent)); min-width: 3px; }
+.hb em { font-style: normal; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.cols { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; align-items: end; height: 80px; border-bottom: 1px solid var(--line); }
+.cols i { display: block; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+.cols-l { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; color: var(--muted); font-size: .78rem; }
+.fmt { display: flex; gap: 8px; }
+.check { flex: 1; display: flex; align-items: center; gap: 10px; border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; font-weight: 800; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.check:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.check small { display: block; font-weight: 400; color: var(--muted); font-size: .78rem; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions .btn { flex: 1; padding: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- INÍCIO -->
+  <section class="screen" id="s-home">
+    <div class="hero">
+      <h1>Diário CNV</h1>
+      <p class="muted">Toque, escolha e avance. Três passos rápidos.</p>
+    </div>
+    <div class="toast" id="toast" role="status" hidden></div>
+    <button type="button" class="big tique" data-kind="tique"><b>Tive um tique</b><span>Registrar agora</span></button>
+    <button type="button" class="big evento" data-kind="evento"><b>Aconteceu algo</b><span>Uma situação que mexeu comigo</span></button>
+    <p class="muted" id="today"></p>
+    <div class="homeinfo">
+      <button type="button" class="btn grow" id="go-list">Ver registros</button>
+      <button type="button" class="btn grow" id="go-report">Relatório</button>
+    </div>
+  </section>
+
+  <!-- RELATÓRIO -->
+  <section class="screen" id="s-report" hidden>
+    <div class="top"><button type="button" class="back" aria-label="Voltar" data-home>‹</button><h2>Relatório</h2></div>
+    <div class="card">
+      <div class="lbl">Período</div>
+      <div class="chips" id="periods">
+        <button type="button" class="chip" data-p="7">7 dias</button>
+        <button type="button" class="chip" data-p="15">15 dias</button>
+        <button type="button" class="chip" data-p="30">30 dias</button>
+        <button type="button" class="chip" data-p="0">Tudo</button>
+        <button type="button" class="chip" data-p="since">Desde…</button>
+      </div>
+      <label class="since" for="since" id="since-wrap" hidden>Desde
+        <input type="date" id="since">
+      </label>
+      <p class="note">Dica: use "Desde…" com a data da última sessão.</p>
+    </div>
+    <div class="screen" id="report"></div>
+    <div class="card">
+      <div class="lbl">Exportar</div>
+      <div class="fmt">
+        <label class="check" for="fmt-pdf"><input type="checkbox" id="fmt-pdf" checked><span>PDF<small>para ler e guardar</small></span></label>
+        <label class="check" for="fmt-csv"><input type="checkbox" id="fmt-csv"><span>CSV<small>planilha</small></span></label>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn primary" id="share">Compartilhar</button>
+        <button type="button" class="btn" id="download">Baixar</button>
+      </div>
+      <button type="button" class="btn" id="copy-txt">Copiar como texto</button>
+      <textarea id="txt-out" readonly hidden aria-label="Texto do relatório" style="width:100%;min-height:90px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px;font-size:.8rem"></textarea>
+      <p class="note" id="exp-msg" role="status"></p>
+    </div>
+  </section>
+
+  <!-- PASSO 1: SENTIMENTOS -->
+  <section class="screen" id="s-feel" hidden>
+    <div class="top"><button type="button" class="back" aria-label="Voltar" data-back>‹</button><div class="prog"><i class="on"></i><i></i><i></i></div></div>
+    <div><div class="stepname">1 de 3 · Sentimento</div><h2>Como estou me sentindo?</h2></div>
+    <div class="seg" id="mood">
+      <button type="button" data-v="unmet" aria-pressed="true">Desconfortável</button>
+      <button type="button" data-v="met" aria-pressed="false">Bem</button>
+    </div>
+    <div class="groups" id="feel-groups"></div>
+    <div class="add"><input type="text" id="f-custom" placeholder="Outra palavra" aria-label="Outro sentimento"><button type="button" class="btn" id="f-add">Adicionar</button></div>
+    <div class="grp">
+      <div class="lbl">Intensidade</div>
+      <div class="inten" id="inten"></div>
+      <div class="inten-l"><span>leve</span><span>muito forte</span></div>
+    </div>
+  </section>
+
+  <!-- PASSO 2: NECESSIDADES -->
+  <section class="screen" id="s-need" hidden>
+    <div class="top"><button type="button" class="back" aria-label="Voltar" data-back>‹</button><div class="prog"><i class="on"></i><i class="on"></i><i></i></div></div>
+    <div><div class="stepname">2 de 3 · Necessidade</div><h2>Do que eu precisava?</h2></div>
+    <div class="grp" id="need-top"></div>
+    <div class="lbl">Todas, por grupo</div>
+    <div class="tiles" id="tiles"></div>
+    <div class="open" id="need-open" hidden></div>
+    <div class="add"><input type="text" id="n-custom" placeholder="Outra palavra" aria-label="Outra necessidade"><button type="button" class="btn" id="n-add">Adicionar</button></div>
+    <div><div class="lbl">Escolhidas</div><div class="chosen" id="need-chosen"></div></div>
+  </section>
+
+  <!-- PASSO 3: OBSERVAÇÃO E PEDIDO -->
+  <section class="screen" id="s-note" hidden>
+    <div class="top"><button type="button" class="back" aria-label="Voltar" data-back>‹</button><div class="prog"><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+    <div><div class="stepname">3 de 3 · Observação e pedido</div><h2>O que aconteceu?</h2></div>
+    <p class="muted">Tudo aqui é opcional. Dá para usar o microfone do teclado.</p>
+    <label class="field" for="tic" id="tic-wrap">Qual tique, ou onde no corpo
+      <input type="text" id="tic" placeholder="Ex.: piscar, ombro, pigarro">
+    </label>
+    <label class="field" for="obs">Observação <span>O fato, como uma câmera filmaria, sem julgar.</span>
+      <textarea id="obs" placeholder="Eu estava na fila e a pessoa da frente demorou 10 minutos."></textarea>
+    </label>
+    <label class="field" for="req">Pedido <span>Algo claro e possível, para mim ou para alguém.</span>
+      <textarea id="req" style="min-height:64px" placeholder="Vou respirar fundo por 2 minutos."></textarea>
+    </label>
+  </section>
+
+  <!-- REGISTROS -->
+  <section class="screen" id="s-list" hidden>
+    <div class="top"><button type="button" class="back" aria-label="Voltar" data-home>‹</button><h2>Registros</h2></div>
+    <div class="screen" id="list"></div>
+    <div class="tools">
+      <div class="lbl">Cópia de segurança</div>
+      <p class="note">Os registros ficam só neste aparelho. Copie de vez em quando e guarde em um lugar seu.</p>
+      <button type="button" class="btn" id="copy-json">Copiar cópia de segurança</button>
+      <textarea id="json-in" aria-label="Cópia de segurança" placeholder="Para restaurar, cole a cópia aqui"></textarea>
+      <button type="button" class="btn" id="restore">Restaurar registros</button>
+      <p class="note" id="tools-msg" role="status"></p>
+    </div>
+  </section>
+</div>
+
+<div class="bar" id="bar" hidden>
+  <div class="bar-in"><button type="button" class="btn primary grow" id="next">Avançar</button></div>
+</div>
+
+<script>
+/* Sentimentos da lista do Instituto CNV Brasil, agrupados por família (agrupamento nosso). */
+var FEEL = {
+  unmet: [
+    { id: "raiva", name: "Raiva", w: ["irritado","frustrado","chateado","aborrecido","agitado","com raiva","furioso"] },
+    { id: "medo", name: "Medo e tensão", w: ["ansioso","tenso","preocupado","receoso","com medo","desconfortável","pessimista","confuso","surpreso","desconcentrado"] },
+    { id: "tris", name: "Tristeza", w: ["triste","desanimado","sozinho","fragilizado","envergonhado","desencorajado","desesperançoso","deprimido"] },
+    { id: "cans", name: "Cansaço", w: ["cansado","exausto","estafado"] }
+  ],
+  met: [
+    { id: "paz", name: "Paz", w: ["calmo","relaxado","aliviado","seguro","centrado","descansado","renovado","satisfeito","pleno"] },
+    { id: "aleg", name: "Alegria", w: ["contente","feliz","alegre","grato","amoroso","conectado","bem-humorado","animado"] },
+    { id: "ener", name: "Energia", w: ["disposto","motivado","concentrado","esperançoso","otimista","curioso","interessado","inspirado","energizado","alerta","empoderado"] }
+  ]
+};
+var NEED = [
+  { id: "corpo", name: "Corpo", hint: "sono, água, saúde", w: ["descanso/sono","água","alimento","ar","movimento","saúde","toque","abrigo","conforto","expressão sexual"] },
+  { id: "seg", name: "Segurança", hint: "paz, ordem, confiança", w: ["paz","segurança","estabilidade","proteção","confiança","ordem","facilidade","harmonia","sustentabilidade","bem-estar"] },
+  { id: "con", name: "Conexão", hint: "apoio, empatia, afeto", w: ["apoio","compreensão","empatia","afeto","respeito","aceitação","pertencimento","reconhecimento","valorização","cooperação","comunicação","suporte","comunhão","interdependência","comprometimento","coerência","equidade"] },
+  { id: "aut", name: "Autonomia", hint: "espaço, escolha", w: ["espaço","autonomia","escolha","liberdade","expressão","autenticidade","honestidade","integridade","espontaneidade"] },
+  { id: "sent", name: "Sentido", hint: "clareza, propósito", w: ["clareza","significado","sentido","presença","contribuição","realização","crescimento","evolução","aprendizado","desafio","descoberta","criatividade","inspiração","esperança","celebração","beleza","luto","expressão espiritual"] },
+  { id: "lazer", name: "Lazer", hint: "diversão, leveza", w: ["lazer","diversão","humor","variedade"] }
+];
+var DEFAULT_TOP_NEEDS = ["descanso/sono","paz","apoio","espaço","compreensão","segurança","clareza","respeito"];
+
+var KEY = "diario-cnv-v1";
+var $ = function (id) { return document.getElementById(id); };
+var cap = function (s) { return s.charAt(0).toUpperCase() + s.slice(1); };
+var esc = function (s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; };
+
+var entries = [];
+try { entries = JSON.parse(localStorage.getItem(KEY) || "[]"); if (!Array.isArray(entries)) entries = []; } catch (e) { entries = []; }
+function persist() { try { localStorage.setItem(KEY, JSON.stringify(entries)); return true; } catch (e) { return false; } }
+
+/* palavras próprias aprendidas dos registros */
+function allFeelWords() { var a = []; FEEL.unmet.concat(FEEL.met).forEach(function (g) { a = a.concat(g.w); }); return a; }
+function allNeedWords() { var a = []; NEED.forEach(function (g) { a = a.concat(g.w); }); return a; }
+function feelGroup(w) { var all = FEEL.unmet.concat(FEEL.met); for (var i = 0; i < all.length; i++) if (all[i].w.indexOf(w) >= 0) return all[i].id; return null; }
+function needGroup(w) { for (var i = 0; i < NEED.length; i++) if (NEED[i].w.indexOf(w) >= 0) return NEED[i].id; return null; }
+var mineF = [], mineN = [];
+entries.forEach(function (e) {
+  (e.feelings || []).forEach(function (w) { if (!feelGroup(w) && mineF.indexOf(w) < 0) mineF.push(w); });
+  (e.needs || []).forEach(function (w) { if (!needGroup(w) && mineN.indexOf(w) < 0) mineN.push(w); });
+});
+function colorVars(prefix, gid) { return gid ? "--c:var(--" + prefix + "-" + gid + ");--cs:var(--" + prefix + "-" + gid + "-s)" : "--c:var(--accent);--cs:var(--accent-soft)"; }
+function freq(key) { var m = {}; entries.forEach(function (e) { (e[key] || []).forEach(function (w) { m[w] = (m[w] || 0) + 1; }); }); return m; }
+
+var cur;
+function fresh(kind) { cur = { kind: kind, feelings: [], needs: [], intensity: null, mood: "unmet", openGroup: null }; }
+
+/* telas */
+var screens = ["home", "feel", "need", "note", "list", "report"];
+var screen = "home";
+function show(s) {
+  screen = s;
+  screens.forEach(function (k) { $("s-" + k).hidden = k !== s; });
+  $("bar").hidden = !(s === "feel" || s === "need" || s === "note");
+  $("next").textContent = s === "note" ? "Salvar registro" : "Avançar";
+  if (s === "home") renderHome();
+  if (s === "feel") renderFeel();
+  if (s === "need") renderNeed();
+  if (s === "note") $("tic-wrap").hidden = cur.kind !== "tique";
+  if (s === "list") renderList();
+  if (s === "report") renderReport();
+  window.scrollTo(0, 0);
+}
+
+/* início */
+function renderHome() {
+  var k = new Date(); k.setMinutes(k.getMinutes() - k.getTimezoneOffset()); k = k.toISOString().slice(0, 10);
+  var n = entries.filter(function (e) { return (e.when || "").slice(0, 10) === k; }).length;
+  $("today").textContent = n ? "Hoje: " + n + (n === 1 ? " registro." : " registros.") : "Nenhum registro hoje.";
+}
+document.querySelectorAll("[data-kind]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    fresh(b.dataset.kind);
+    $("tic").value = ""; $("obs").value = ""; $("req").value = "";
+    $("toast").hidden = true;
+    show("feel");
+  });
+});
+document.querySelectorAll("[data-back]").forEach(function (b) {
+  b.addEventListener("click", function () { show({ feel: "home", need: "feel", note: "need" }[screen]); });
+});
+document.querySelectorAll("[data-home]").forEach(function (b) { b.addEventListener("click", function () { show("home"); }); });
+$("go-list").addEventListener("click", function () { show("list"); });
+
+/* palavra clicável */
+function word(w, prefix, gid, list, onChange, mine) {
+  var b = document.createElement("button");
+  b.type = "button"; b.className = "w" + (mine ? " mine" : ""); b.textContent = cap(w);
+  b.setAttribute("style", colorVars(prefix, gid));
+  b.setAttribute("aria-pressed", list.indexOf(w) >= 0 ? "true" : "false");
+  b.addEventListener("click", function () {
+    var i = list.indexOf(w); if (i >= 0) list.splice(i, 1); else list.push(w);
+    onChange();
+  });
+  return b;
+}
+function group(title, prefix, gid, words, list, onChange, mineSet) {
+  var g = document.createElement("div"); g.className = "grp"; g.setAttribute("style", colorVars(prefix, gid));
+  if (title) { var h = document.createElement("div"); h.className = "grp-h"; h.textContent = title; g.appendChild(h); }
+  var grid = document.createElement("div"); grid.className = "grid";
+  words.forEach(function (w) {
+    var wg = prefix === "g" ? feelGroup(w) : needGroup(w);
+    grid.appendChild(word(w, prefix, wg || gid, list, onChange, mineSet && mineSet.indexOf(w) >= 0));
+  });
+  g.appendChild(grid);
+  return g;
+}
+
+/* passo 1 */
+function sortByUse(words, m) { return words.slice().sort(function (a, b) { return (m[b] || 0) - (m[a] || 0); }); }
+function renderFeel() {
+  var m = freq("feelings");
+  document.querySelectorAll("#mood button").forEach(function (x) { x.setAttribute("aria-pressed", x.dataset.v === cur.mood ? "true" : "false"); });
+  var box = $("feel-groups"); box.innerHTML = "";
+  FEEL[cur.mood].forEach(function (g) { box.appendChild(group(g.name, "g", g.id, sortByUse(g.w, m), cur.feelings, renderFeel)); });
+  if (cur.mood === "unmet" && mineF.length) box.appendChild(group("Minhas palavras", "g", null, mineF, cur.feelings, renderFeel, mineF));
+  var other = cur.feelings.filter(function (w) { var gid = feelGroup(w); return gid && !FEEL[cur.mood].some(function (g) { return g.id === gid; }); });
+  if (other.length) box.appendChild(group("Também escolhido", "g", null, other, cur.feelings, renderFeel));
+  var ib = $("inten"); ib.innerHTML = "";
+  [1, 2, 3, 4, 5].forEach(function (v) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = v;
+    b.setAttribute("aria-pressed", cur.intensity === v * 2 ? "true" : "false");
+    b.setAttribute("aria-label", "Intensidade " + v + " de 5");
+    b.addEventListener("click", function () { cur.intensity = cur.intensity === v * 2 ? null : v * 2; renderFeel(); });
+    ib.appendChild(b);
+  });
+}
+document.querySelectorAll("#mood button").forEach(function (b) { b.addEventListener("click", function () { cur.mood = b.dataset.v; renderFeel(); }); });
+function addMine(inputId, mine, list, known, rerender) {
+  var v = $(inputId).value.trim().toLowerCase(); if (!v) return;
+  if (known.indexOf(v) < 0 && mine.indexOf(v) < 0) mine.push(v);
+  if (list.indexOf(v) < 0) list.push(v);
+  $(inputId).value = ""; rerender();
+}
+$("f-add").addEventListener("click", function () { cur.mood = feelGroup($("f-custom").value.trim().toLowerCase()) ? cur.mood : "unmet"; addMine("f-custom", mineF, cur.feelings, allFeelWords(), renderFeel); });
+$("n-add").addEventListener("click", function () { addMine("n-custom", mineN, cur.needs, allNeedWords(), renderNeed); });
+[["f-custom", "f-add"], ["n-custom", "n-add"]].forEach(function (p) {
+  $(p[0]).addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); $(p[1]).click(); } });
+});
+
+/* passo 2 */
+function renderNeed() {
+  var m = freq("needs");
+  var used = Object.keys(m).sort(function (a, b) { return m[b] - m[a]; });
+  var top = used.slice(0, 8);
+  DEFAULT_TOP_NEEDS.forEach(function (w) { if (top.length < 8 && top.indexOf(w) < 0) top.push(w); });
+  var t = $("need-top"); t.innerHTML = "";
+  t.appendChild(group(used.length >= 3 ? "Mais usadas" : "Comuns para começar", "n", null, top, cur.needs, renderNeed, mineN));
+  t.querySelector(".grp-h").style.cssText = "color:var(--muted)";
+  var tiles = $("tiles"); tiles.innerHTML = "";
+  NEED.forEach(function (g) {
+    var c = cur.needs.filter(function (w) { return g.w.indexOf(w) >= 0; }).length;
+    var b = document.createElement("button"); b.type = "button"; b.className = "tile";
+    b.setAttribute("style", colorVars("n", g.id));
+    b.setAttribute("aria-expanded", cur.openGroup === g.id ? "true" : "false");
+    b.innerHTML = "<b>" + g.name + "</b><small>" + g.hint + "</small>" + (c ? '<span class="n">' + c + " escolhida" + (c > 1 ? "s" : "") + "</span>" : "");
+    b.addEventListener("click", function () { cur.openGroup = cur.openGroup === g.id ? null : g.id; renderNeed(); });
+    tiles.appendChild(b);
+  });
+  var open = $("need-open");
+  var g = NEED.filter(function (x) { return x.id === cur.openGroup; })[0];
+  open.hidden = !g; open.innerHTML = "";
+  if (g) open.appendChild(group(g.name, "n", g.id, sortByUse(g.w, m), cur.needs, renderNeed));
+  var ch = $("need-chosen");
+  ch.innerHTML = cur.needs.length ? cur.needs.map(function (w) { return '<span class="pill" style="' + colorVars("n", needGroup(w)) + '">' + esc(cap(w)) + "</span>"; }).join("") : '<span class="muted">Nenhuma ainda. Pode pular se não souber.</span>';
+}
+
+/* avançar / salvar */
+function nowLocal() { var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); }
+$("next").addEventListener("click", function () {
+  if (screen === "feel") return show("need");
+  if (screen === "need") return show("note");
+  entries.unshift({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    when: nowLocal(), kind: cur.kind, tic: cur.kind === "tique" ? $("tic").value.trim() : "",
+    obs: $("obs").value.trim(), feelings: cur.feelings.slice(), intensity: cur.intensity,
+    needs: cur.needs.slice(), req: $("req").value.trim()
+  });
+  var ok = persist();
+  show("home");
+  $("toast").textContent = ok ? "Registro salvo. Obrigado por se ouvir." : "Salvo só nesta sessão: o navegador não permitiu guardar.";
+  $("toast").hidden = false;
+});
+
+/* registros */
+function fmtWhen(s) {
+  var d = new Date(s); if (isNaN(d)) return s;
+  return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }) + " · " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+function pills(arr, prefix) { return arr.map(function (w) { return '<span class="pill" style="' + colorVars(prefix, prefix === "g" ? feelGroup(w) : needGroup(w)) + '">' + esc(cap(w)) + "</span>"; }).join(""); }
+function entryHTML(e, sample) {
+  var h = '<article class="entry' + (sample ? " sample" : "") + '"><div class="e-top"><span>' + esc(fmtWhen(e.when)) + '</span><span>' + (sample ? '<span class="tag">Exemplo</span> ' : "") + '<span class="tag">' + (e.kind === "evento" ? "Aconteceu algo" : "Tique") + "</span></span></div>";
+  if (e.tic) h += '<div class="e-txt"><span class="e-k">Tique</span>' + esc(e.tic) + "</div>";
+  if (e.feelings && e.feelings.length) h += '<div class="e-row"><span class="e-k">Sinto</span>' + pills(e.feelings, "g") + (e.intensity ? '<span class="muted">· ' + e.intensity / 2 + "/5</span>" : "") + "</div>";
+  if (e.needs && e.needs.length) h += '<div class="e-row"><span class="e-k">Preciso</span>' + pills(e.needs, "n") + "</div>";
+  if (e.obs) h += '<div class="e-txt"><span class="e-k">Observação</span>' + esc(e.obs) + "</div>";
+  if (e.req) h += '<div class="e-txt"><span class="e-k">Pedido</span>' + esc(e.req) + "</div>";
+  if (!sample) h += '<div><button type="button" class="btn small danger" data-del="' + esc(e.id) + '">Apagar</button></div>';
+  return h + "</article>";
+}
+var armed = null;
+function renderList() {
+  var el = $("list");
+  if (!entries.length) {
+    el.innerHTML = '<p class="muted">Nenhum registro ainda. Um registro aparece assim:</p>' + entryHTML({ when: nowLocal(), kind: "tique", tic: "Piscar forte", feelings: ["ansioso", "irritado"], intensity: 6, needs: ["respeito", "facilidade"], obs: "Eu estava na fila do mercado e a pessoa da frente demorou 10 minutos.", req: "Vou respirar fundo por 2 minutos." }, true);
+    return;
+  }
+  el.innerHTML = entries.slice().sort(function (a, b) { return a.when < b.when ? 1 : -1; }).map(function (e) { return entryHTML(e, false); }).join("");
+  el.querySelectorAll("[data-del]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (armed !== b.dataset.del) { armed = b.dataset.del; b.textContent = "Toque de novo para apagar"; return; }
+      entries = entries.filter(function (x) { return x.id !== armed; }); armed = null; persist(); renderList();
+    });
+  });
+}
+
+/* exportar */
+function copy(text, msgEl, okMsg, fallbackEl) {
+  var fb = function () {
+    if (fallbackEl) { fallbackEl.hidden = false; fallbackEl.value = text; fallbackEl.focus(); fallbackEl.select(); }
+    msgEl.textContent = fallbackEl ? "Não consegui copiar sozinho. O texto está selecionado: copie pelo menu do aparelho." : "Não consegui copiar. Abra Ver registros e use a cópia de segurança.";
+  };
+  try { navigator.clipboard.writeText(text).then(function () { msgEl.textContent = okMsg; }, fb); } catch (e) { fb(); }
+}
+$("go-report").addEventListener("click", function () { show("report"); });
+
+/* ---------- relatório ---------- */
+var rep = { p: "30" };
+var DOW = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+var DAYPART = [["Madrugada", 0, 5], ["Manhã", 6, 11], ["Tarde", 12, 17], ["Noite", 18, 23]];
+function localDate(d) { d = new Date(d); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
+function periodStart() {
+  if (rep.p === "0") return null;
+  if (rep.p === "since") return $("since").value || null;
+  var d = new Date(); d.setDate(d.getDate() - (+rep.p - 1)); return localDate(d);
+}
+function periodLabel() {
+  var s = periodStart(), today = localDate(new Date());
+  var br = function (k) { return k.slice(8, 10) + "/" + k.slice(5, 7) + "/" + k.slice(0, 4); };
+  if (!s) return "Todos os registros";
+  return br(s) + " a " + br(today);
+}
+function inPeriod() {
+  var s = periodStart();
+  return entries.filter(function (e) { return !s || (e.when || "").slice(0, 10) >= s; })
+    .sort(function (a, b) { return a.when < b.when ? -1 : 1; });
+}
+function topOf(list, key, n) {
+  var m = {}; list.forEach(function (e) { (e[key] || []).forEach(function (w) { m[w] = (m[w] || 0) + 1; }); });
+  return Object.keys(m).map(function (k) { return [k, m[k]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, n);
+}
+function stats(list) {
+  var tq = list.filter(function (e) { return e.kind === "tique"; });
+  var withI = list.filter(function (e) { return e.intensity; });
+  var dow = [0, 0, 0, 0, 0, 0, 0], part = [0, 0, 0, 0];
+  tq.forEach(function (e) {
+    var d = new Date(e.when); if (isNaN(d)) return;
+    dow[d.getDay()]++;
+    var h = d.getHours(); DAYPART.forEach(function (p, i) { if (h >= p[1] && h <= p[2]) part[i]++; });
+  });
+  return {
+    total: list.length, tiques: tq.length, eventos: list.length - tq.length,
+    media: withI.length ? (withI.reduce(function (s, e) { return s + e.intensity; }, 0) / withI.length / 2) : null,
+    feel: topOf(list, "feelings", 5), need: topOf(list, "needs", 5), feelTique: topOf(tq, "feelings", 5),
+    dow: dow, part: part
+  };
+}
+function hbars(rows, prefix) {
+  if (!rows.length) return '<p class="muted">Sem dados no período.</p>';
+  var max = rows[0][1];
+  return '<div class="hbars">' + rows.map(function (r) {
+    var gid = prefix === "g" ? feelGroup(r[0]) : prefix === "n" ? needGroup(r[0]) : null;
+    return '<div class="hb" style="' + colorVars(prefix || "g", gid) + '"><span>' + esc(cap(r[0])) + '</span><span><i style="width:' + Math.round(r[1] / max * 100) + '%"></i></span><em>' + r[1] + "</em></div>";
+  }).join("") + "</div>";
+}
+function fmtMedia(m) { return m == null ? "–" : m.toFixed(1).replace(".", ","); }
+function renderReport() {
+  document.querySelectorAll("#periods .chip").forEach(function (c) { c.setAttribute("aria-pressed", c.dataset.p === rep.p ? "true" : "false"); });
+  $("since-wrap").hidden = rep.p !== "since";
+  var list = inPeriod(), s = stats(list), el = $("report");
+  if (!list.length) { el.innerHTML = '<div class="card"><p class="muted">Nenhum registro em ' + esc(periodLabel().toLowerCase()) + ". Escolha outro período.</p></div>"; return; }
+  var dmax = Math.max.apply(null, s.dow) || 1;
+  var parts = DAYPART.map(function (p, i) { return [p[0], s.part[i]]; }).filter(function (r) { return r[1]; }).sort(function (a, b) { return b[1] - a[1]; });
+  el.innerHTML =
+    '<p class="muted">' + esc(periodLabel()) + "</p>" +
+    '<div class="stats"><div class="stat"><b>' + s.total + '</b><span>registros</span></div><div class="stat"><b>' + s.tiques + '</b><span>tiques</span></div><div class="stat"><b>' + s.eventos + '</b><span>acontecimentos</span></div><div class="stat"><b>' + fmtMedia(s.media) + '</b><span>intensidade média /5</span></div></div>' +
+    '<div class="card"><div class="lbl">Sentimentos mais frequentes</div>' + hbars(s.feel, "g") + "</div>" +
+    '<div class="card"><div class="lbl">Necessidades mais frequentes</div>' + hbars(s.need, "n") + "</div>" +
+    (s.tiques ? '<div class="card"><div class="lbl">Tiques por dia da semana</div><div class="cols">' + s.dow.map(function (v) { return '<i style="height:' + Math.round(v / dmax * 100) + '%" title="' + v + '"></i>'; }).join("") + '</div><div class="cols-l">' + DOW.map(function (d, i) { return "<span>" + d + "<br>" + s.dow[i] + "</span>"; }).join("") + "</div></div>" +
+      '<div class="card"><div class="lbl">Tiques por período do dia</div>' + hbars(parts, null) + "</div>" +
+      '<div class="card"><div class="lbl">Sentimentos que aparecem junto com os tiques</div>' + hbars(s.feelTique, "g") + "</div>" : "");
+}
+document.querySelectorAll("#periods .chip").forEach(function (c) {
+  c.addEventListener("click", function () {
+    rep.p = c.dataset.p;
+    if (rep.p === "since" && !$("since").value) { var d = new Date(); d.setDate(d.getDate() - 7); $("since").value = localDate(d); }
+    renderReport();
+  });
+});
+$("since").addEventListener("change", renderReport);
+
+/* exportações */
+function reportPlain() {
+  var list = inPeriod(), s = stats(list);
+  var top = function (rows) { return rows.length ? rows.map(function (r) { return cap(r[0]) + " (" + r[1] + ")"; }).join(", ") : "–"; };
+  var l = ["Diário CNV — Relatório", "Período: " + periodLabel(), "",
+    "Registros: " + s.total + " · Tiques: " + s.tiques + " · Acontecimentos: " + s.eventos + " · Intensidade média: " + fmtMedia(s.media) + "/5",
+    "Sentimentos mais frequentes: " + top(s.feel), "Necessidades mais frequentes: " + top(s.need)];
+  if (s.tiques) {
+    l.push("Tiques por dia da semana: " + DOW.map(function (d, i) { return d + " " + s.dow[i]; }).join(", "));
+    l.push("Tiques por período do dia: " + DAYPART.map(function (p, i) { return p[0] + " " + s.part[i]; }).join(", "));
+    l.push("Sentimentos junto com os tiques: " + top(s.feelTique));
+  }
+  return { head: l, list: list };
+}
+function entryLines(e) {
+  var l = [fmtWhen(e.when) + " — " + (e.kind === "evento" ? "Aconteceu algo" : "Tique")];
+  if (e.tic) l.push("Tique: " + e.tic);
+  if (e.obs) l.push("Observação: " + e.obs);
+  if (e.feelings && e.feelings.length) l.push("Sentimentos: " + e.feelings.map(cap).join(", ") + (e.intensity ? " (intensidade " + e.intensity / 2 + "/5)" : ""));
+  if (e.needs && e.needs.length) l.push("Necessidades: " + e.needs.map(cap).join(", "));
+  if (e.req) l.push("Pedido: " + e.req);
+  return l;
+}
+function reportTextFull() {
+  var r = reportPlain();
+  return r.head.join("\n") + "\n\nREGISTROS\n\n" + r.list.map(function (e) { return entryLines(e).join("\n"); }).join("\n\n");
+}
+function csvBlob() {
+  var q = function (v) { v = v == null ? "" : String(v); return '"' + v.replace(/"/g, '""') + '"'; };
+  var rows = [["Data", "Hora", "Tipo", "Tique", "Sentimentos", "Intensidade (1-5)", "Necessidades", "Observação", "Pedido"]];
+  inPeriod().forEach(function (e) {
+    var d = new Date(e.when);
+    rows.push([localDate(d).split("-").reverse().join("/"), d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      e.kind === "evento" ? "Aconteceu algo" : "Tique", e.tic || "", (e.feelings || []).join(", "), e.intensity ? e.intensity / 2 : "",
+      (e.needs || []).join(", "), e.obs || "", e.req || ""]);
+  });
+  return new Blob(["﻿" + rows.map(function (r) { return r.map(q).join(";"); }).join("\r\n")], { type: "text/csv;charset=utf-8" });
+}
+function pdfBlob() {
+  if (!window.jspdf) throw new Error("pdf");
+  var doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+  var W = 210, M = 18, y = M, maxW = W - 2 * M;
+  function need(h) { if (y + h > 297 - M) { doc.addPage(); y = M; } }
+  function txt(t, size, style, color) {
+    doc.setFont("helvetica", style || "normal"); doc.setFontSize(size); doc.setTextColor.apply(doc, color || [25, 48, 47]);
+    var lines = doc.splitTextToSize(t, maxW), lh = size * 0.42;
+    lines.forEach(function (ln) { need(lh); doc.text(ln, M, y); y += lh; });
+  }
+  var r = reportPlain();
+  txt("Diário CNV", 20, "bold", [31, 122, 114]); y += 1;
+  txt("Relatório · " + periodLabel(), 11, "normal", [90, 114, 112]); y += 4;
+  txt("Resumo", 13, "bold"); y += 1;
+  r.head.slice(3).forEach(function (l) { txt(l, 10); y += 1; });
+  y += 4; doc.setDrawColor(211, 223, 221); doc.line(M, y, W - M, y); y += 6;
+  txt("Registros", 13, "bold"); y += 2;
+  r.list.forEach(function (e) {
+    var ls = entryLines(e);
+    need(14);
+    txt(ls[0], 10.5, "bold");
+    ls.slice(1).forEach(function (l) { txt(l, 10); });
+    y += 4;
+  });
+  return doc.output("blob");
+}
+function exportFiles() {
+  var stamp = localDate(new Date()), files = [], err = "";
+  if ($("fmt-pdf").checked) { try { files.push(new File([pdfBlob()], "diario-cnv-" + stamp + ".pdf", { type: "application/pdf" })); } catch (e) { err = "Não consegui gerar o PDF sem internet na primeira vez. Abra o app conectado uma vez e tente de novo."; } }
+  if ($("fmt-csv").checked) files.push(new File([csvBlob()], "diario-cnv-" + stamp + ".csv", { type: "text/csv" }));
+  return { files: files, err: err };
+}
+var sandboxed = window.self !== window.top;
+function expMsg(t) { $("exp-msg").textContent = t; }
+function checkReady() {
+  if (!inPeriod().length) { expMsg("Não há registros nesse período."); return false; }
+  if (!$("fmt-pdf").checked && !$("fmt-csv").checked) { expMsg("Marque PDF, CSV ou os dois."); return false; }
+  return true;
+}
+$("download").addEventListener("click", function () {
+  if (!checkReady()) return;
+  var r = exportFiles();
+  r.files.forEach(function (f) {
+    var a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  });
+  expMsg(r.err || (sandboxed ? "Neste link de teste o download fica bloqueado. No app instalado ele funciona." : r.files.length + " arquivo(s) salvos em Downloads."));
+});
+$("share").addEventListener("click", function () {
+  if (!checkReady()) return;
+  var r = exportFiles();
+  var data = { title: "Diário CNV — Relatório", text: "Relatório do Diário CNV (" + periodLabel() + ")", files: r.files };
+  if (navigator.canShare && r.files.length && navigator.canShare({ files: r.files })) {
+    navigator.share(data).then(function () { expMsg("Compartilhado."); }, function (e) { expMsg(e && e.name === "AbortError" ? "" : "O compartilhamento não abriu. Use Baixar."); });
+  } else {
+    expMsg(r.err || (sandboxed ? "Neste link de teste o compartilhamento fica bloqueado. No app instalado abre o menu do Android." : "Este navegador não compartilha arquivos. Use Baixar."));
+  }
+});
+$("copy-txt").addEventListener("click", function () {
+  if (!inPeriod().length) { expMsg("Não há registros nesse período."); return; }
+  copy(reportTextFull(), $("exp-msg"), "Relatório copiado como texto.", $("txt-out"));
+});
+$("copy-json").addEventListener("click", function () { copy(JSON.stringify(entries), $("tools-msg"), "Cópia de segurança copiada.", $("json-in")); });
+$("restore").addEventListener("click", function () {
+  try {
+    var v = JSON.parse($("json-in").value); if (!Array.isArray(v)) throw 0;
+    var ids = {}; entries.forEach(function (e) { ids[e.id] = 1; });
+    var n = 0;
+    v.forEach(function (e) { if (e && e.id && !ids[e.id] && Array.isArray(e.feelings) && Array.isArray(e.needs)) { entries.push(e); n++; } });
+    persist(); renderList(); $("tools-msg").textContent = n + " registro(s) restaurado(s).";
+  } catch (e) { $("tools-msg").textContent = "Esse texto não parece uma cópia de segurança válida."; }
+});
+
+show("home");
+</script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");</script>
+</body>
+</html>

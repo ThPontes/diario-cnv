@@ -1,5 +1,5 @@
 // Troque a versão a cada publicação para o celular baixar a nova.
-const VERSION = "diario-cnv-v3";
+const VERSION = "diario-cnv-v4";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png",
   "vendor/jspdf.umd.min.js", "icons/icon-180.png"];
 

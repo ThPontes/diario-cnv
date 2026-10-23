@@ -105,7 +105,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .grp-h { display: flex; align-items: center; gap: 8px; font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
 .grp-h::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 6px; }
-.w { border: 1px solid transparent; background: var(--cs); color: var(--fg); border-radius: 10px; padding: 8px 6px; min-height: 40px; cursor: pointer; font-size: .86rem; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+.w { border: 1px solid transparent; background: var(--cs); color: var(--fg); border-radius: 10px; padding: 8px 6px; min-height: 40px; cursor: pointer; font-size: .86rem; font-weight: 700; line-height: 1.15; overflow-wrap: break-word; hyphens: auto; }
 .w[aria-pressed="true"] { background: var(--c); color: var(--on-solid); }
 .w.mine { border: 1px dashed var(--c); }
 
@@ -182,7 +182,7 @@ button, input, textarea { font: inherit; color: inherit; }
 </style>
 
 <!-- BODY -->
-<div class="wrap">
+<div class="wrap" lang="pt-BR">
 
   <!-- INÍCIO -->
   <section class="screen" id="s-home">
@@ -388,7 +388,7 @@ $("go-list").addEventListener("click", function () { show("list"); });
 /* palavra clicável */
 function word(w, prefix, gid, list, onChange, mine) {
   var b = document.createElement("button");
-  b.type = "button"; b.className = "w" + (mine ? " mine" : ""); b.textContent = cap(w);
+  b.type = "button"; b.className = "w" + (mine ? " mine" : ""); b.textContent = cap(w).replace("/", "/\u200b");
   b.setAttribute("style", colorVars(prefix, gid));
   b.setAttribute("aria-pressed", list.indexOf(w) >= 0 ? "true" : "false");
   b.addEventListener("click", function () {

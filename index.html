@@ -95,8 +95,14 @@ button, input, textarea { font: inherit; color: inherit; }
 .big { border: 0; border-radius: 22px; padding: 26px 22px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
 .big b { font-family: var(--font-display); font-size: 1.7rem; font-weight: 700; }
 .big span { font-size: .95rem; opacity: .9; }
-.big.tique { background: var(--accent); color: var(--accent-ink); min-height: 170px; justify-content: flex-end; }
-.big.evento { background: var(--surface); color: var(--fg); border: 2px solid var(--line); }
+.big.tique, .big.evento { min-height: 150px; justify-content: flex-end; }
+.big.tique { background: var(--accent); color: var(--accent-ink); }
+.big.evento { background: var(--n-sent); color: var(--on-solid); }
+/* faixa de contexto no topo de cada passo */
+.ctx { display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; border-radius: 14px; background: var(--cs); }
+.ctx-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 800; color: var(--c); }
+.ctx-h small { font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ctx .e-row { font-size: .85rem; }
 .homeinfo { display: flex; gap: 10px; flex-wrap: wrap; }
 .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 14px; cursor: pointer; font-weight: 700; }
 .btn.grow { flex: 1; }
@@ -247,6 +253,7 @@ button, input, textarea { font: inherit; color: inherit; }
   <!-- PASSO 1: SENTIMENTOS -->
   <section class="screen" id="s-feel" hidden>
     <div class="top"><button type="button" class="back" aria-label="Voltar" data-back>‹</button><div class="prog"><i class="on"></i><i></i><i></i></div></div>
+    <div class="ctx" data-ctx></div>
     <div><div class="stepname">1 de 3 · Sentimento</div><h2>Como estou me sentindo?</h2></div>
     <div class="seg" id="mood">
       <button type="button" data-v="unmet" aria-pressed="true">Desconfortável</button>
@@ -264,6 +271,7 @@ button, input, textarea { font: inherit; color: inherit; }
   <!-- PASSO 2: NECESSIDADES -->
   <section class="screen" id="s-need" hidden>
     <div class="top"><button type="button" class="back" aria-label="Voltar" data-back>‹</button><div class="prog"><i class="on"></i><i class="on"></i><i></i></div></div>
+    <div class="ctx" data-ctx></div>
     <div><div class="stepname">2 de 3 · Necessidade</div><h2>Do que eu precisava?</h2></div>
     <div class="grp" id="need-top"></div>
     <div class="lbl">Todas, por grupo</div>
@@ -276,6 +284,7 @@ button, input, textarea { font: inherit; color: inherit; }
   <!-- PASSO 3: OBSERVAÇÃO E PEDIDO -->
   <section class="screen" id="s-note" hidden>
     <div class="top"><button type="button" class="back" aria-label="Voltar" data-back>‹</button><div class="prog"><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+    <div class="ctx" data-ctx></div>
     <div><div class="stepname">3 de 3 · Observação e pedido</div><h2>O que aconteceu?</h2></div>
     <p class="muted">Tudo aqui é opcional. Dá para usar o microfone do teclado.</p>
     <label class="field" for="tic" id="tic-wrap">Qual tique, ou onde no corpo
@@ -356,7 +365,7 @@ function colorVars(prefix, gid) { return gid ? "--c:var(--" + prefix + "-" + gid
 function freq(key) { var m = {}; entries.forEach(function (e) { (e[key] || []).forEach(function (w) { m[w] = (m[w] || 0) + 1; }); }); return m; }
 
 var cur;
-function fresh(kind) { cur = { kind: kind, feelings: [], needs: [], intensity: null, mood: "unmet", openGroup: null }; }
+function fresh(kind) { cur = { kind: kind, started: nowLocal(), feelings: [], needs: [], intensity: null, mood: "unmet", openGroup: null }; }
 
 /* telas */
 var screens = ["home", "feel", "need", "note", "list", "report"];
@@ -367,12 +376,26 @@ function show(s) {
   $("bar").hidden = !(s === "feel" || s === "need" || s === "note");
   $("next").textContent = s === "note" ? "Salvar registro" : "Avançar";
   if (s === "home") renderHome();
+  if (s === "feel" || s === "need" || s === "note") renderCtx(s);
   if (s === "feel") renderFeel();
   if (s === "need") renderNeed();
   if (s === "note") $("tic-wrap").hidden = cur.kind !== "tique";
   if (s === "list") renderList();
   if (s === "report") renderReport();
   window.scrollTo(0, 0);
+}
+
+/* faixa de contexto: o que estou registrando e o que já escolhi */
+function renderCtx(s) {
+  var tique = cur.kind === "tique";
+  var hora = cur.started.slice(11, 16);
+  var h = '<div class="ctx-h"><span>' + (tique ? "Tive um tique" : "Aconteceu algo") + "</span><small>hoje, " + hora + "</small></div>";
+  if (s !== "feel" && cur.feelings.length) h += '<div class="e-row"><span class="e-k">Sinto</span>' + pills(cur.feelings, "g") + "</div>";
+  if (s === "note" && cur.needs.length) h += '<div class="e-row"><span class="e-k">Preciso</span>' + pills(cur.needs, "n") + "</div>";
+  document.querySelectorAll("#s-" + s + " [data-ctx]").forEach(function (el) {
+    el.setAttribute("style", tique ? "--c:var(--accent);--cs:var(--accent-soft)" : colorVars("n", "sent"));
+    el.innerHTML = h;
+  });
 }
 
 /* início */
@@ -487,7 +510,7 @@ $("next").addEventListener("click", function () {
   if (screen === "need") return show("note");
   entries.unshift({
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    when: nowLocal(), kind: cur.kind, tic: cur.kind === "tique" ? $("tic").value.trim() : "",
+    when: cur.started || nowLocal(), kind: cur.kind, tic: cur.kind === "tique" ? $("tic").value.trim() : "",
     obs: $("obs").value.trim(), feelings: cur.feelings.slice(), intensity: cur.intensity,
     needs: cur.needs.slice(), req: $("req").value.trim()
   });
